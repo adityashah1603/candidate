@@ -228,16 +228,26 @@ class Relay:
             try:
                 stored = self.provider.read(external_key)
             except KeyError:
-                self.provider.create_draft(
-                    external_key=external_key,
-                    asset=asset,
-                )
-                if crash_at == "after_first_provider_write" and index == 0:
-                    raise InjectedCrash(
-                        "crashed after provider write and before local "
-                        "receipt"
+                try:
+                    self.provider.create_draft(
+                        external_key=external_key,
+                        asset=asset,
                     )
-                stored = self.provider.read(external_key)
+                except TimeoutError:
+                    # The provider's response never arrived. A timeout
+                    # says nothing about whether the write landed - read
+                    # back the actual state instead of assuming success
+                    # or failure. If it genuinely never landed, this
+                    # raises KeyError and the run stays unresolved rather
+                    # than being guessed at.
+                    stored = self.provider.read(external_key)
+                else:
+                    if crash_at == "after_first_provider_write" and index == 0:
+                        raise InjectedCrash(
+                            "crashed after provider write and before "
+                            "local receipt"
+                        )
+                    stored = self.provider.read(external_key)
             readbacks.append(stored)
 
         mismatches = self._find_mismatches(run["payload"]["assets"], readbacks)

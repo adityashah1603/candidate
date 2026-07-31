@@ -7,7 +7,7 @@ Before running anything i read core.py and noticed:
 5) "verified=True" is hardcoded
 6) FakeHubSpot.DISPLAY_NAME_LIMIT = 40 - shortens the display nam from requests
 7) cancel in core.py isnt actually cancelling just writes it there
-8) objects are identified by run_d instead of idempotency key, causes duplicates.
+8) objects are identified by run_id instead of idempotency key, causes duplicates.
 
 Pre Req: couldnt run the demo file- gave an error of database being used by other process (googled this error - windows error) - need to fix connection leak
 How and what to fix:
