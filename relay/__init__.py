@@ -4,6 +4,7 @@ from .core import (
     InjectedCrash,
     Relay,
     RunCancelled,
+    VerificationMismatch,
 )
 
 __all__ = [
@@ -12,4 +13,5 @@ __all__ = [
     "InjectedCrash",
     "Relay",
     "RunCancelled",
+    "VerificationMismatch",
 ]

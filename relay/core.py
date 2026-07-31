@@ -21,6 +21,10 @@ class RunCancelled(RuntimeError):
     pass
 
 
+class VerificationMismatch(RuntimeError):
+    pass
+
+
 def _canonical_json(value: Any) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"))
 
@@ -221,15 +225,27 @@ class Relay:
             if self.get(run_id)["status"] == "cancelled":
                 raise RunCancelled(f"run {run_id!r} was cancelled")
             external_key = f"{run_id}:{asset['asset_id']}"
-            self.provider.create_draft(
-                external_key=external_key,
-                asset=asset,
-            )
-            if crash_at == "after_first_provider_write" and index == 0:
-                raise InjectedCrash(
-                    "crashed after provider write and before local receipt"
+            try:
+                stored = self.provider.read(external_key)
+            except KeyError:
+                self.provider.create_draft(
+                    external_key=external_key,
+                    asset=asset,
                 )
-            readbacks.append(self.provider.read(external_key))
+                if crash_at == "after_first_provider_write" and index == 0:
+                    raise InjectedCrash(
+                        "crashed after provider write and before local "
+                        "receipt"
+                    )
+                stored = self.provider.read(external_key)
+            readbacks.append(stored)
+
+        mismatches = self._find_mismatches(run["payload"]["assets"], readbacks)
+        if mismatches:
+            raise VerificationMismatch(
+                f"run {run_id!r} does not match the approved assets: "
+                + "; ".join(mismatches)
+            )
 
         receipt = {
             "run_id": run_id,
@@ -247,6 +263,37 @@ class Relay:
                 (_canonical_json(receipt), run_id),
             )
         return receipt
+
+    def _find_mismatches(
+        self,
+        approved_assets: list[dict[str, Any]],
+        stored_objects: list[dict[str, str]],
+    ) -> list[str]:
+        """Compare what the provider stored against what was approved.
+
+        display_name is compared after applying the provider's documented
+        DISPLAY_NAME_LIMIT truncation - a truncated name is not a mismatch,
+        it is the provider's known, expected behavior. Every other field is
+        compared exactly.
+        """
+        limit = self.provider.DISPLAY_NAME_LIMIT
+        mismatches: list[str] = []
+        for asset, stored in zip(approved_assets, stored_objects):
+            asset_id = str(asset["asset_id"])
+            expected_fields = {
+                "display_name": str(asset["display_name"]).strip()[:limit],
+                "source_asset_id": str(asset["asset_id"]),
+                "source_sha256": str(asset["source_sha256"]),
+                "object_type": str(asset["type"]),
+            }
+            for field, expected_value in expected_fields.items():
+                actual_value = stored.get(field)
+                if actual_value != expected_value:
+                    mismatches.append(
+                        f"{asset_id}.{field} expected {expected_value!r}, "
+                        f"got {actual_value!r}"
+                    )
+        return mismatches
 
     def recover(self) -> None:
         """
