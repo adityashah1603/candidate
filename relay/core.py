@@ -131,18 +131,26 @@ class Relay:
         """Reuse the existing run for a repeated idempotency key.
 
         A retried submission (browser retry, double-click, ...) carries the
-        same idempotency key as the original. Looking up that key first, and
-        returning its run instead of inserting a new row, is what stops a
-        retry from becoming a second delivery.
+        same idempotency key as the original and must resolve to the same
+        run. But if the payload under that key has changed - the operator
+        edited the selection and resubmitted from the same UI request - the
+        key no longer names one unambiguous request, so it is refused
+        rather than silently deployed under the old run or the new content.
         """
         payload_json = _canonical_json(payload)
         payload_hash = _digest_text(payload_json)
         with self._connect() as connection:
             existing = connection.execute(
-                "SELECT id FROM deployments WHERE idempotency_key = ?",
+                "SELECT id, payload_hash FROM deployments "
+                "WHERE idempotency_key = ?",
                 (idempotency_key,),
             ).fetchone()
             if existing is not None:
+                if existing["payload_hash"] != payload_hash:
+                    raise IdempotencyConflict(
+                        f"idempotency key {idempotency_key!r} was reused "
+                        "with a different payload"
+                    )
                 return str(existing["id"])
             run_id = str(uuid.uuid4())
             connection.execute(
