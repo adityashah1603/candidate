@@ -181,27 +181,15 @@ class Relay:
     def retry(self, run_id: str) -> str:
         """The admin panel's retry button for a deployment operators call stuck.
 
-        Starter behavior: re-runs the same approved request under a fresh
-        deployment, keeping the operator's original idempotency key.
+        Resumes the existing run for the operator's idempotency key instead
+        of starting a fresh deployment - the same lookup submit() does. A
+        retry is not a new approval; a second row under the same key would
+        mean a second delivery for the same request.
         """
         previous = self.get(run_id)
-        new_run_id = str(uuid.uuid4())
-        payload_json = _canonical_json(previous["payload"])
-        with self._connect() as connection:
-            connection.execute(
-                """
-                INSERT INTO deployments
-                    (id, idempotency_key, payload_hash, payload_json, status)
-                VALUES (?, ?, ?, ?, 'pending')
-                """,
-                (
-                    new_run_id,
-                    str(previous["idempotency_key"]),
-                    str(previous["payload_hash"]),
-                    payload_json,
-                ),
-            )
-        return new_run_id
+        return self.submit(
+            str(previous["idempotency_key"]), previous["payload"]
+        )
 
     def run_once(
         self,
