@@ -1,0 +1,26 @@
+{"case":"simple_restart","event":"submit","idempotency_key":"deploy-101","payload_version":"A","run_id":"run-1"}
+{"case":"simple_restart","event":"provider_write","run_id":"run-1","asset_id":"asset-lp-001","accepted":true}
+{"case":"simple_restart","event":"process_crash","run_id":"run-1","local_receipt":null}
+{"case":"simple_restart","event":"recover","run_id":"run-1","status":"done","provider_object_count":4}
+{"case":"duplicate_delivery","event":"submit","idempotency_key":"deploy-202","payload_version":"A","run_id":"run-2"}
+{"case":"duplicate_delivery","event":"submit","idempotency_key":"deploy-202","payload_version":"A","run_id":"run-3"}
+{"case":"duplicate_delivery","event":"operator_observation","provider_object_count":8,"expected_asset_count":4}
+{"case":"double_submit_new_key","event":"submit","idempotency_key":"deploy-207a","payload_version":"A","run_id":"run-7"}
+{"case":"double_submit_new_key","event":"submit","idempotency_key":"deploy-207b","payload_version":"A","run_id":"run-8"}
+{"case":"double_submit_new_key","event":"operator_observation","provider_object_count":8,"expected_asset_count":4}
+{"case":"admin_retry","event":"submit","idempotency_key":"deploy-404","payload_version":"A","run_id":"run-9"}
+{"case":"admin_retry","event":"worker_stall","run_id":"run-9","local_status":"running"}
+{"case":"admin_retry","event":"operator_action","action":"retry_from_admin_panel","idempotency_key":"deploy-404","run_id":"run-10"}
+{"case":"admin_retry","event":"operator_observation","provider_object_count":8,"expected_asset_count":4}
+{"case":"changed_request","event":"submit","idempotency_key":"deploy-303","payload_version":"A","run_id":"run-4"}
+{"case":"changed_request","event":"submit","idempotency_key":"deploy-303","payload_version":"B","change":"email 3 source hash changed","run_id":"run-5"}
+{"case":"cancel_after_write","event":"provider_write","run_id":"run-6","asset_id":"asset-lp-001","accepted":true}
+{"case":"cancel_after_write","event":"cancel","run_id":"run-6","local_status":"cancelled"}
+{"case":"cancel_after_write","event":"operator_observation","remaining_email_drafts_appeared":true,"final_local_status":"done"}
+{"case":"verified_receipt_disputed","event":"provider_write","run_id":"run-11","asset_id":"asset-lp-001","accepted":true}
+{"case":"verified_receipt_disputed","event":"provider_readback","run_id":"run-11","asset_id":"asset-lp-001","stored_display_name_matches_approved":false}
+{"case":"verified_receipt_disputed","event":"receipt","run_id":"run-11","verified":true,"objects":4}
+{"case":"verified_receipt_disputed","event":"operator_observation","note":"receipt said verified and the drafts were not what we approved"}
+{"case":"provider_ambiguous_write","event":"provider_write","run_id":"run-12","asset_id":"asset-email-002","accepted":null,"error":"gateway_timeout","retryable":true}
+{"case":"provider_ambiguous_write","event":"provider_readback","run_id":"run-12","asset_id":"asset-email-002","found":true}
+{"case":"unrelated_tooling","event":"tool_error","run_id":"run-13","tool":"thumbnail_render","code":"transient_timeout","retryable":true}

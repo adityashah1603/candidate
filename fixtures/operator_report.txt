@@ -1,0 +1,18 @@
+The basic restart demo now finishes, but we still do not trust deployments.
+
+One approved campaign was submitted twice after the browser retried and HubSpot
+ended up with duplicate drafts. A different campaign came back doubled even
+though the two submissions did not share a key. When a deployment looked stuck,
+someone hit retry in the admin panel and a second set of drafts appeared under
+the same approval.
+
+In another case, an operator cancelled after seeing the first landing-page
+draft, but the remaining emails appeared later. We also do not know what should
+happen when someone edits the selected assets and retries from the same UI
+request.
+
+The receipts are the part that worries me most. They say verified, and I cannot
+tell anyone what that word covers. Twice now a receipt has said verified for a
+campaign whose drafts did not match what was approved.
+
+Please define what the system can honestly guarantee and show evidence for it.
