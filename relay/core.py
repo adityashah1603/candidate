@@ -128,11 +128,23 @@ class Relay:
             )
 
     def submit(self, idempotency_key: str, payload: dict[str, Any]) -> str:
-        """Starter behavior: incorrectly creates a new deployment every time."""
-        run_id = str(uuid.uuid4())
+        """Reuse the existing run for a repeated idempotency key.
+
+        A retried submission (browser retry, double-click, ...) carries the
+        same idempotency key as the original. Looking up that key first, and
+        returning its run instead of inserting a new row, is what stops a
+        retry from becoming a second delivery.
+        """
         payload_json = _canonical_json(payload)
         payload_hash = _digest_text(payload_json)
         with self._connect() as connection:
+            existing = connection.execute(
+                "SELECT id FROM deployments WHERE idempotency_key = ?",
+                (idempotency_key,),
+            ).fetchone()
+            if existing is not None:
+                return str(existing["id"])
+            run_id = str(uuid.uuid4())
             connection.execute(
                 """
                 INSERT INTO deployments
