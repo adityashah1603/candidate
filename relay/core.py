@@ -206,14 +206,20 @@ class Relay:
         crash_at: str | None = None,
     ) -> dict[str, Any]:
         run = self.get(run_id)
+        if run["status"] == "cancelled":
+            raise RunCancelled(f"run {run_id!r} was cancelled")
+
         with self._connect() as connection:
             connection.execute(
-                "UPDATE deployments SET status = 'running' WHERE id = ?",
+                "UPDATE deployments SET status = 'running' "
+                "WHERE id = ? AND status != 'cancelled'",
                 (run_id,),
             )
 
         readbacks: list[dict[str, str]] = []
         for index, asset in enumerate(run["payload"]["assets"]):
+            if self.get(run_id)["status"] == "cancelled":
+                raise RunCancelled(f"run {run_id!r} was cancelled")
             external_key = f"{run_id}:{asset['asset_id']}"
             self.provider.create_draft(
                 external_key=external_key,
@@ -236,7 +242,7 @@ class Relay:
                 """
                 UPDATE deployments
                 SET status = 'done', receipt_json = ?
-                WHERE id = ?
+                WHERE id = ? AND status != 'cancelled'
                 """,
                 (_canonical_json(receipt), run_id),
             )
